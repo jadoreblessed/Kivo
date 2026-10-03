@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { connectSolanaWallet, createDevnetToken, validateLaunch } from '../lib/solana-launch';
+import { validateLaunch } from '../lib/launch-input';
 
 export default function LaunchToken() {
   const [name, setName] = useState('');
@@ -14,7 +14,7 @@ export default function LaunchToken() {
   const [result, setResult] = useState<{ mint: string; signature: string } | null>(null);
 
   async function connect() {
-    try { setError(''); setWallet(await connectSolanaWallet()); }
+    try { setError(''); const { connectSolanaWallet } = await import('../lib/solana-launch'); setWallet(await connectSolanaWallet()); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Wallet connection failed.'); }
   }
 
@@ -23,6 +23,7 @@ export default function LaunchToken() {
     try {
       validateLaunch({ name, symbol, supply, uri });
       setBusy(true);
+      const { createDevnetToken } = await import('../lib/solana-launch');
       const launched = await createDevnetToken({ name, symbol, supply, uri });
       setResult(launched);
     } catch (reason) {
