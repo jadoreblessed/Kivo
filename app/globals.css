@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Familjen+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-@import "tailwindcss";
 :root{--background:#070a12;--foreground:#f1f3ff;--card:#111522;--card-foreground:#f1f3ff;--primary:#9baaff;--primary-foreground:#080b13;--secondary:#171e2c;--secondary-foreground:#f1f3ff;--muted:#171e2c;--muted-foreground:#9ba5b9;--accent:#b5fd75;--accent-foreground:#080b13;--border:#343b4d;--input:#343b4d;--ring:#9baaff;--radius:0}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#070a12;color:#f1f3ff;font-family:'Familjen Grotesk',sans-serif}button,input,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}::selection{background:#b5fd75;color:#070a12}
 .site{min-height:100vh;background:radial-gradient(ellipse 34% 300px at 100% 90px,#192c50aa,transparent),radial-gradient(ellipse 27% 250px at 0 80px,#261b50aa,transparent),#070a12}.wrap{width:min(1250px,calc(100% - 72px));margin:auto}.mono,.nav,.btn,.eyebrow,.tiny,.label,.tabs{font-family:'DM Mono',monospace}.header{height:68px;border-bottom:1px solid #394052;display:flex;align-items:center;justify-content:space-between;padding:0 max(36px,calc((100vw - 1250px)/2));gap:20px;background:#090b13de;position:sticky;top:0;z-index:30;backdrop-filter:blur(18px)}.brand{display:flex;align-items:center;gap:10px;font:700 12px 'DM Mono',monospace}.brandmark{width:28px;height:28px;display:grid;place-items:center;background:linear-gradient(140deg,#91a8ff,#ad94ff 50%,#b5fd75);color:#070a12;font:900 18px 'Familjen Grotesk',sans-serif;clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%)}.nav{display:flex;gap:29px;align-items:center;font-size:12px}.nav a{opacity:.78}.nav a:hover,.nav a.active{opacity:1;color:#b5fd75}.nav a.active{border-bottom:2px solid #b5fd75;padding-bottom:9px;margin-bottom:-11px}.header-actions{display:flex;gap:11px;align-items:center}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #dce1ef;padding:14px 18px;background:transparent;color:#f2f4ff;font-size:11px;font-weight:700;white-space:nowrap;text-transform:uppercase;box-shadow:0 4px 0 #677ade;transition:transform .18s,box-shadow .18s}.btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 #677ade}.btn.primary{background:linear-gradient(110deg,#8ca5ff,#ba9cf5 50%,#b5fd75);color:#081017}.btn.small{padding:10px 12px;box-shadow:0 3px 0 #677ade}.xmark{font-size:22px;border:1px solid #f1f3ff;width:33px;height:33px;text-align:center;line-height:29px;background:#f1f3ff;color:#070a12}.ca{font:700 10px 'DM Mono',monospace;padding:11px;background:linear-gradient(110deg,#8ca5ff,#b5fd75);color:#0a1016;border:0}
@@ -76,18 +75,6 @@ h1,h2,h3,.brand,.receipt-main strong{font-family:'Outfit',sans-serif}
 .receipt:before{content:"";position:absolute;left:-1px;right:-1px;top:-1px;height:6px;background:linear-gradient(90deg,#819fff 0 18%,#a994f8 18% 40%,#c0a9f7 40% 62%,#bdf994 62% 82%,#71e4b5 82% 100%)}
 .receipt-head{padding-top:19px}
 
-/* Keep the pool label outside the isometric slabs. */
-.stack-display{display:flex;flex:1;min-width:0;max-width:285px;flex-direction:column;align-items:center}
-.stack-display .stack-visual{width:100%;height:auto;flex:none}
-.pool-caption{font:700 12px 'DM Mono',monospace;letter-spacing:1.4px;color:#f1f2ff;margin-top:7px;white-space:nowrap}
+.admin-page{min-height:100vh;padding-top:30px;padding-bottom:80px}.admin-page .pagehero{min-height:0;padding-top:45px;padding-bottom:30px}.admin-back{font:700 13px 'DM Mono',monospace;color:#b5fd75}.admin-form{max-width:620px}.admin-form .field{display:block;margin:20px 0}.admin-form .input{width:100%}.admin-message{margin-top:24px;color:#b5fd75;font-family:'DM Mono',monospace}.ca{max-width:220px;overflow:hidden;text-overflow:ellipsis}
 
-/* The social mark is a filled disc with a full-size X, like the reference. */
-.xmark{width:43px;height:43px;padding:0;display:inline-grid;place-items:center;background:#f5f6ff;border:2px solid #10111c;border-radius:50%;box-shadow:0 4px 0 #e95096;overflow:hidden;transition:transform .18s,box-shadow .18s}
-.xmark svg{width:39px;height:39px;display:block;flex:none}
-.xmark:hover{transform:translateY(-2px);box-shadow:0 6px 0 #e95096}
-@media(max-width:650px){
-  .header-actions .xmark{width:34px;height:34px;flex:none}
-  .header-actions .xmark svg{width:32px;height:32px}
-  .stack-display{max-width:252px}
-  .pool-caption{font-size:10px;margin-top:5px}
-}
+.mainnet-confirm{display:flex;align-items:center;gap:10px;padding:14px;border:1px solid #829eff;color:#f2f4ff;font-size:12px}.mainnet-confirm input{accent-color:#b5fd75;width:18px;height:18px;flex:none}
