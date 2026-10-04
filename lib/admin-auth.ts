@@ -30,6 +30,7 @@ async function sign(value: string) {
 }
 
 export function checkPassword(input: string) { return equal(input, settings().password); }
+export function assertAdminConfigured() { settings(); }
 
 export async function setAdminCookie() {
   const expires = Math.floor(Date.now() / 1000) + TTL;
