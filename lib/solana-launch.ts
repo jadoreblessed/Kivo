@@ -6,9 +6,10 @@ import {
   getAssociatedTokenAddressSync, getMintLen,
 } from '@solana/spl-token';
 import { createInitializeInstruction, pack } from '@solana/spl-token-metadata';
-import { validateLaunch, type LaunchInput } from './launch-input';
 
+export type SolanaNetwork = 'devnet' | 'mainnet-beta';
 export const DEVNET_RPC = clusterApiUrl('devnet');
+export function rpc(network: SolanaNetwork) { return network === 'devnet' ? (process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC || DEVNET_RPC) : (process.env.NEXT_PUBLIC_SOLANA_MAINNET_RPC || clusterApiUrl('mainnet-beta')); }
 
 type InjectedWallet = {
   publicKey?: PublicKey;
@@ -23,7 +24,7 @@ declare global {
   }
 }
 
-function provider(): InjectedWallet {
+export function provider(): InjectedWallet {
   const wallet = window.phantom?.solana ?? window.solana;
   if (!wallet?.connect || !wallet?.signTransaction) {
     throw new Error('Install a Solana wallet such as Phantom, then reload the page.');
@@ -37,13 +38,25 @@ export async function connectSolanaWallet(): Promise<string> {
   return result.publicKey.toBase58();
 }
 
+export type LaunchInput = { name: string; symbol: string; supply: string; uri: string };
+
+export function validateLaunch(input: LaunchInput): bigint {
+  if (!input.name.trim() || input.name.trim().length > 32) throw new Error('Name must be 1–32 characters.');
+  if (!/^[A-Z0-9]{1,10}$/.test(input.symbol)) throw new Error('Ticker must be 1–10 letters or digits.');
+  if (!/^[1-9]\d{0,11}$/.test(input.supply)) throw new Error('Supply must be a whole number from 1 to 999,999,999,999.');
+  if (input.uri && (!/^https:\/\//.test(input.uri) || input.uri.length > 200)) {
+    throw new Error('Metadata URI must be an HTTPS URL of at most 200 characters.');
+  }
+  return BigInt(input.supply) * BigInt(1_000_000);
+}
+
 // The wallet signs every instruction. KIVO never receives a seed phrase or private key.
-// This creates a fixed-supply Token-2022 mint on devnet, not the KIVO swap program.
-export async function createDevnetToken(input: LaunchInput): Promise<{ mint: string; signature: string }> {
+// Creates a fixed-supply Token-2022 mint on the selected network, not the KIVO swap program.
+export async function createToken(input: LaunchInput, network: SolanaNetwork): Promise<{ mint: string; signature: string }> {
   const amount = validateLaunch(input);
   const wallet = provider();
   const owner = (await wallet.connect()).publicKey;
-  const connection = new Connection(DEVNET_RPC, 'confirmed');
+  const connection = new Connection(rpc(network), 'confirmed');
   const mint = Keypair.generate();
   const metadata = {
     mint: mint.publicKey,
@@ -75,3 +88,5 @@ export async function createDevnetToken(input: LaunchInput): Promise<{ mint: str
   if (confirmation.value.err) throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}. Signature: ${signature}`);
   return { mint: mint.publicKey.toBase58(), signature };
 }
+
+export const createDevnetToken = (input: LaunchInput) => createToken(input, 'devnet');

@@ -1,2 +1,4 @@
 import Kivo from './site';
-export default function Page(){ return <Kivo/> }
+import { publicConfig } from '../lib/site-config';
+export const dynamic = 'force-dynamic';
+export default async function Page(){ return <Kivo config={await publicConfig()}/> }

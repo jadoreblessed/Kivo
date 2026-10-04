@@ -1,0 +1,8 @@
+node_modules
+dist
+.next
+.env
+.git
+*.tar.gz
+*.tsbuildinfo
+programs/**/target

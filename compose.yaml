@@ -1,0 +1,10 @@
+services:
+  site:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SOLANA_MAINNET_RPC: ${NEXT_PUBLIC_SOLANA_MAINNET_RPC:-https://api.mainnet-beta.solana.com}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
