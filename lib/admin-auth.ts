@@ -1,4 +1,7 @@
 import { cookies } from 'next/headers';
+import { sameOrigin } from './origin';
+
+export { sameOrigin };
 
 const COOKIE = 'kivo_admin';
 const TTL = 60 * 60 * 8;
@@ -42,8 +45,3 @@ export async function isAdmin() {
 }
 
 export async function clearAdminCookie() { (await cookies()).delete(COOKIE); }
-
-export function sameOrigin(request: Request) {
-  const origin = request.headers.get('origin');
-  return !!origin && new URL(origin).host === new URL(request.url).host && new URL(origin).protocol === new URL(request.url).protocol;
-}
