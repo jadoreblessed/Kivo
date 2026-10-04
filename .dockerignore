@@ -6,3 +6,5 @@ dist
 *.tar.gz
 *.tsbuildinfo
 programs/**/target
+.toolchain
+.vinext

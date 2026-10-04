@@ -8,3 +8,4 @@ dist/
 programs/**/target/
 
 .toolchain/
+.vinext/
