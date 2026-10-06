@@ -10,7 +10,7 @@ import { provider, rpc, type SolanaNetwork } from './solana-launch';
 const encoder = new TextEncoder();
 const u16 = (x:number) => { const b=Buffer.alloc(2);b.writeUInt16LE(x);return b; };
 const u32 = (x:number) => { const b=Buffer.alloc(4);b.writeUInt32LE(x);return b; };
-const u64 = (x:bigint) => { const b=Buffer.alloc(8);b.writeBigUInt64LE(x);return b; };
+const u64 = (x:bigint) => { if(x<0n||x>0xffff_ffff_ffff_ffffn)throw new RangeError('u64 out of range');const b=Buffer.alloc(8);b.writeUInt32LE(Number(x & 0xffff_ffffn),0);b.writeUInt32LE(Number(x >> 32n),4);return b; };
 const u128 = (x:bigint) => Buffer.concat([u64(x&((1n<<64n)-1n)),u64(x>>64n)]);
 const DISCRIMINATORS:{[key:string]:string}={initialize:'afaf6d1f0d989bed',buy:'66063d1201daebea',sell:'33e685a4017f83ad',
   prepare_graduation:'45bced6d58da9f73',graduate:'2debe1b511da4082',
@@ -72,7 +72,7 @@ function encodeRules(r:Rules):Buffer {validateRules(r);return Buffer.concat([
   u16(r.guardCapBps),u16(r.snipeTaxBps),u16(r.burnBps),u16(r.lpBps),u16(r.potBps),
   u32(r.potEvery),u64(r.potMinLamports),
 ]);}
-const readU64=(data:Buffer,offset:number)=>data.readBigUInt64LE(offset);
+const readU64=(data:Buffer,offset:number)=>BigInt(data.readUInt32LE(offset)) | (BigInt(data.readUInt32LE(offset+4)) << 32n);
 const readRules=(d:Buffer,o=105):Rules=>({baseBps:d.readUInt16LE(o),surgeCeilingBps:d.readUInt16LE(o+2),
   surgeSensitivity:d[o+4],guardSlots:d.readUInt32LE(o+5),guardCapBps:d.readUInt16LE(o+9),
   snipeTaxBps:d.readUInt16LE(o+11),burnBps:d.readUInt16LE(o+13),lpBps:d.readUInt16LE(o+15),
