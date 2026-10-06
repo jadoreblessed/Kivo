@@ -16,10 +16,6 @@ services:
         value: https://api.devnet.solana.com
       - key: NEXT_PUBLIC_KIVO_NETWORK
         value: devnet
-      - key: NEXT_PUBLIC_KIVO_PROGRAM_ID
-        value: 7rJ2978K9SpqB4d7FAGrquhC7Gy2iJehxB4EohDZEB8
-      - key: NEXT_PUBLIC_KIVO_TREASURY
-        value: 84HCJtzmvWF2tB4SCr8hmDymLN4Rz6u8jJoyaqwLjSRR
       - key: ADMIN_PASSWORD
         sync: false
       - key: ADMIN_SESSION_SECRET
