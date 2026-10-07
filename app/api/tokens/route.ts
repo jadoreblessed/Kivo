@@ -1,5 +1,5 @@
 import { sameOrigin } from '../../../lib/admin-auth';
-import { listTokens, registerToken } from '../../../lib/token-listings';
+import { getToken, listTokens, registerToken } from '../../../lib/token-listings';
 import type { SolanaNetwork } from '../../../lib/solana-launch';
 
 function networkOf(value: unknown): SolanaNetwork {
@@ -10,6 +10,12 @@ function networkOf(value: unknown): SolanaNetwork {
 export async function GET(request: Request) {
   try {
     const network = networkOf(new URL(request.url).searchParams.get('network'));
+    const mint = new URL(request.url).searchParams.get('mint');
+    if (mint) {
+      const token = await getToken(mint, network);
+      return token ? Response.json({ token }, { headers: { 'Cache-Control': 'no-store' } })
+        : Response.json({ error: 'Token is not in the catalog.' }, { status: 404 });
+    }
     return Response.json({ tokens: await listTokens(network) }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'Token catalog unavailable.' }, { status: 503 });

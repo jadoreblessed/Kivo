@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {createMarket,defaultRules,rulesFromBuilder,validateRules,fetchBlueprints,publishBlueprint,type BlueprintRecord,type Rules} from '../lib/market-client';
-import {connectSolanaWallet,rpc,type SolanaNetwork} from '../lib/solana-launch';
+import {connectSolanaWallet,phantomBrowseUrl,rpc,type SolanaNetwork} from '../lib/solana-launch';
 import {Connection} from '@solana/web3.js';
 
 const network:SolanaNetwork=process.env.NEXT_PUBLIC_KIVO_NETWORK==='mainnet-beta'?'mainnet-beta':'devnet';
@@ -54,7 +54,7 @@ export default function MarketLaunch(){
       {network==='mainnet-beta'&&<label className="field mainnet-confirm"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> I understand this creates a real token and a live market with irreversible rules and financial risk.</label>}
       <div className="actions"><button className="btn" onClick={connect}>{wallet?`${wallet.slice(0,4)}…${wallet.slice(-4)} CONNECTED`:'CONNECT WALLET'}</button>
         <button className="btn primary" disabled={busy||(network==='mainnet-beta'&&!confirmed)} onClick={launch}>{busy?'WAITING FOR WALLET':'CREATE TOKEN + MARKET'}</button></div>
-      {error&&<p className="launch-error" role="alert">{error}</p>}
+      {error&&<p className="launch-error" role="alert">{error} {error.startsWith('Phantom is not available')&&typeof window!=='undefined'&&/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)&&<a href={phantomBrowseUrl(window.location.href)}>OPEN IN PHANTOM →</a>}</p>}
       {result&&<div className="launch-result" role="status"><strong>Market created</strong><p>Mint: <code>{result.mint}</code></p><p>Market: <code>{result.market}</code></p><a href={`/market/${result.mint}`}>OPEN TRADING PAGE →</a><br/><a target="_blank" rel="noreferrer" href={`https://explorer.solana.com/tx/${result.signature}${network==='devnet'?'?cluster=devnet':''}`}>VIEW TRANSACTION ↗</a></div>}
     </section><aside className="preview-panel"><span className="tiny">LOCKED AT LAUNCH</span><div className="token-preview"><div className="token-icon">{(symbol||'TKR').slice(0,3)}</div><div><b>{name||'Your token'}</b><div className="tiny">${symbol||'TKR'} · TOKEN-2022</div></div></div>
       <div className="metric"><span>Fixed supply</span><strong>1,000,000,000</strong></div><div className="metric"><span>Curve tokens</span><strong>800,000,000</strong></div><div className="metric"><span>Pool reserve</span><strong>200,000,000</strong></div><div className="metric"><span>Mint authority</span><strong>Revoked</strong></div><p className="form-note">The last curve buy closes KIVO trading and enables permissionless migration into a permanently locked Meteora DAMM v2 position.</p></aside></div></main>;

@@ -46,6 +46,12 @@ export async function listTokens(network: SolanaNetwork): Promise<TokenListing[]
     .map(item => JSON.parse(item) as TokenListing);
 }
 
+export async function getToken(mintAddress: string, network: SolanaNetwork): Promise<TokenListing | null> {
+  const mint = new PublicKey(mintAddress).toBase58();
+  const raw = await command(['HGET', recordsKey(network), mint]);
+  return typeof raw === 'string' ? JSON.parse(raw) as TokenListing : null;
+}
+
 export async function registerToken(mintAddress: string, signature: string, network: SolanaNetwork): Promise<TokenListing> {
   const mint = new PublicKey(mintAddress);
   if (!/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(signature)) throw new Error('Enter a valid transaction signature.');

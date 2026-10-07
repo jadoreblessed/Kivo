@@ -62,11 +62,9 @@ export default function MarketList() {
       {tokens.map(token => {
         const market = marketsByMint.get(token.mint);
         return <article className="blueprint" key={token.mint}>
-          <span className="badge">{market ? market.migrated ? 'LOCKED POOL' : market.graduated ? 'READY TO GRADUATE' : 'ON THE CURVE' : 'TOKEN CREATED'}</span>
-          <h3>{token.name} · ${token.symbol}</h3>
-          <p>Mint: <code>{token.mint.slice(0,6)}…{token.mint.slice(-5)}</code></p>
-          <p>{market ? `${(Number(market.sold)/8e14*100).toFixed(2)}% of the curve sold` : 'Trading is not available for this token.'}</p>
-          <div className="actions">{market ? <a className="btn primary" href={`/market/${token.mint}`}>OPEN MARKET</a> : <a className="btn primary" href={`https://explorer.solana.com/address/${token.mint}${network === 'devnet' ? '?cluster=devnet' : ''}`} target="_blank" rel="noreferrer">VIEW ON EXPLORER ↗</a>}</div>
+          <div className="token-card-head"><div className="token-icon" aria-hidden="true">{token.symbol.slice(0,3)}</div><div><h3>{token.name}</h3><p>${token.symbol} · {token.mint.slice(0,4)}…{token.mint.slice(-4)}</p></div><span className="badge">{market ? market.migrated ? 'LOCKED POOL' : market.graduated ? 'READY TO GRADUATE' : 'BONDING' : 'TOKEN CREATED'}</span></div>
+          <div className="token-card-facts"><span>{market ? `${(Number(market.sold)/8e14*100).toFixed(2)}% CURVE` : 'TOKEN-2022'}</span><span>{network === 'devnet' ? 'DEVNET' : 'MAINNET'}</span></div>
+          <div className="actions">{market ? <a className="btn primary" href={`/market/${token.mint}`}>OPEN MARKET</a> : <a className="btn primary" href={`/token/${token.mint}?network=${network}`}>VIEW TOKEN</a>}</div>
         </article>;
       })}
       {markets.filter(market => !tokens.some(token => token.mint === market.mint)).map(market => <article className="blueprint" key={market.mint}>

@@ -26,14 +26,20 @@ declare global {
 
 export function provider(): InjectedWallet {
   const wallet = window.phantom?.solana ?? window.solana;
-  if (!wallet?.connect || !wallet?.signTransaction) {
-    throw new Error('Install a Solana wallet such as Phantom, then reload the page.');
+  if (!wallet?.connect) {
+    throw new Error('Phantom is not available in this browser. On mobile, open this page inside Phantom; on desktop, enable the Phantom extension and reload.');
   }
   return wallet;
 }
 
+export function phantomBrowseUrl(pageUrl: string): string {
+  const page = new URL(pageUrl);
+  return `https://phantom.app/ul/browse/${encodeURIComponent(page.href)}?ref=${encodeURIComponent(page.origin)}`;
+}
+
 export async function connectSolanaWallet(): Promise<string> {
   const wallet = provider();
+  if (!wallet.signTransaction) throw new Error('This wallet cannot sign Solana transactions. Open the site in Phantom.');
   const result = await wallet.connect();
   return result.publicKey.toBase58();
 }
