@@ -80,7 +80,12 @@ export async function registerToken(mintAddress: string, signature: string, netw
   const connection = new Connection(network === 'mainnet-beta'
     ? process.env.SOLANA_MAINNET_RPC || rpc(network)
     : process.env.SOLANA_DEVNET_RPC || rpc(network), 'confirmed');
-  const transaction = await connection.getParsedTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
+  let transaction: Awaited<ReturnType<typeof connection.getParsedTransaction>> = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    transaction = await connection.getParsedTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
+    if (transaction) break;
+    if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1200));
+  }
   if (!transaction || transaction.meta?.err || !transaction.transaction.message.accountKeys.some(key => key.pubkey.equals(mint) && key.signer)) {
     throw new Error('This signature does not confirm creation of this mint.');
   }
