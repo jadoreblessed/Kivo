@@ -82,3 +82,4 @@ h1,h2,h3,.brand,.receipt-main strong{font-family:'Outfit',sans-serif}
 /* Header mascot logo */
 .header .brandmark{width:42px;height:42px;flex:none;object-fit:contain;clip-path:none;background:none}
 @media(max-width:650px){.header .brandmark{width:38px;height:38px}}
+.token-import{max-width:620px;margin:32px 0 80px}.token-import .field{display:block;margin:16px 0}.token-import .input{width:100%}.blueprint h3{padding-right:120px;overflow-wrap:anywhere}

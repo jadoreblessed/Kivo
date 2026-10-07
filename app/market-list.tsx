@@ -1,23 +1,88 @@
 'use client';
-import {useEffect,useState} from 'react';
+import { useEffect, useState } from 'react';
+import type { SolanaNetwork } from '../lib/solana-launch';
+import type { TokenListing } from '../lib/token-listings';
 
-type Entry={mint:string;market:string;creator:string;sold:string;raise:string;graduated:boolean;migrated:boolean;pool:string|null};
-export default function MarketList(){
-  const [markets,setMarkets]=useState<Entry[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
-  useEffect(()=>{let active=true;
-    fetch('/api/markets').then(async response=>{
-      const body=await response.json();if(!response.ok)throw new Error(body.error||'Market listing unavailable.');
-      if(active)setMarkets(body.markets||[]);
-    }).catch(e=>{if(active)setError(e instanceof Error?e.message:'Market listing unavailable.')}).finally(()=>{if(active)setLoading(false)});
-    return()=>{active=false};
-  },[]);
-  if(loading)return <div className="empty">LOADING ONCHAIN MARKETS…</div>;
-  if(error)return <div className="empty">MARKET CATALOG UNAVAILABLE · <a href="/launch">LAUNCH A TOKEN</a></div>;
-  if(!markets.length)return <div className="empty">NO KIVO LAUNCHES YET · <a href="/launch">BE THE FIRST TO LAUNCH</a></div>;
-  return <div className="blueprints">{markets.map(m=><article className="blueprint" key={m.mint}>
-    <span className="badge">{m.migrated?'LOCKED POOL':m.graduated?'READY TO GRADUATE':'ON THE CURVE'}</span>
-    <h3>{m.mint.slice(0,6)}…{m.mint.slice(-5)}</h3>
-    <p>{(Number(m.sold)/8e14*100).toFixed(2)}% of the curve sold · target {(Number(m.raise)/1e9).toLocaleString()} SOL</p>
-    <div className="actions"><a className="btn primary" href={`/market/${m.mint}`}>OPEN MARKET</a></div>
-  </article>)}</div>;
+type Market = { mint: string; sold: string; raise: string; graduated: boolean; migrated: boolean };
+
+export default function MarketList() {
+  const [network, setNetwork] = useState<SolanaNetwork>('mainnet-beta');
+  const [tokens, setTokens] = useState<TokenListing[]>([]);
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [mint, setMint] = useState('');
+  const [signature, setSignature] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setError(''); setTokens([]); setMarkets([]);
+    const queries: Promise<void>[] = [fetch(`/api/tokens?network=${network}`).then(async response => {
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Token catalog unavailable.');
+      if (active) setTokens(body.tokens || []);
+    })];
+    if (process.env.NEXT_PUBLIC_KIVO_PROGRAM_ID &&
+        (process.env.NEXT_PUBLIC_KIVO_NETWORK || 'devnet') === network) {
+      queries.push(fetch('/api/markets').then(async response => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || 'Market listing unavailable.');
+        if (active) setMarkets(body.markets || []);
+      }).catch(() => {}));
+    }
+    void Promise.all(queries).catch(reason => {
+      if (active) setError(reason instanceof Error ? reason.message : 'Token catalog unavailable.');
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [network]);
+
+  async function addToken(event: React.FormEvent) {
+    event.preventDefault(); setAdding(true); setAddError('');
+    try {
+      const response = await fetch('/api/tokens', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mint: mint.trim(), signature: signature.trim(), network }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Could not add token.');
+      const token = body.token as TokenListing;
+      setTokens(previous => [token, ...previous.filter(item => item.mint !== token.mint)]);
+      setMint(''); setSignature('');
+    } catch (reason) {
+      setAddError(reason instanceof Error ? reason.message : 'Could not add token.');
+    } finally { setAdding(false); }
+  }
+
+  const marketsByMint = new Map(markets.map(market => [market.mint, market]));
+  return <>
+    <label className="field"><span className="tiny">NETWORK</span><select className="input" value={network} onChange={event => setNetwork(event.target.value as SolanaNetwork)}><option value="mainnet-beta">Solana mainnet</option><option value="devnet">Solana devnet</option></select></label>
+    {loading ? <div className="empty">LOADING TOKENS…</div> : error ? <div className="empty" role="alert">{error}</div> : !tokens.length && !markets.length ? <div className="empty">NO TOKENS LISTED YET · <a href="/launch">CREATE A TOKEN</a></div> : <div className="blueprints">
+      {tokens.map(token => {
+        const market = marketsByMint.get(token.mint);
+        return <article className="blueprint" key={token.mint}>
+          <span className="badge">{market ? market.migrated ? 'LOCKED POOL' : market.graduated ? 'READY TO GRADUATE' : 'ON THE CURVE' : 'TOKEN CREATED'}</span>
+          <h3>{token.name} · ${token.symbol}</h3>
+          <p>Mint: <code>{token.mint.slice(0,6)}…{token.mint.slice(-5)}</code></p>
+          <p>{market ? `${(Number(market.sold)/8e14*100).toFixed(2)}% of the curve sold` : 'Trading is not available for this token.'}</p>
+          <div className="actions">{market ? <a className="btn primary" href={`/market/${token.mint}`}>OPEN MARKET</a> : <a className="btn primary" href={`https://explorer.solana.com/address/${token.mint}${network === 'devnet' ? '?cluster=devnet' : ''}`} target="_blank" rel="noreferrer">VIEW ON EXPLORER ↗</a>}</div>
+        </article>;
+      })}
+      {markets.filter(market => !tokens.some(token => token.mint === market.mint)).map(market => <article className="blueprint" key={market.mint}>
+        <span className="badge">{market.migrated ? 'LOCKED POOL' : market.graduated ? 'READY TO GRADUATE' : 'ON THE CURVE'}</span>
+        <h3>{market.mint.slice(0,6)}…{market.mint.slice(-5)}</h3>
+        <p>{(Number(market.sold)/8e14*100).toFixed(2)}% of the curve sold · target {(Number(market.raise)/1e9).toLocaleString()} SOL</p>
+        <div className="actions"><a className="btn primary" href={`/market/${market.mint}`}>OPEN MARKET</a></div>
+      </article>)}
+    </div>}
+    <form className="launch-panel token-import" onSubmit={event => void addToken(event)}>
+      <h3>Already created a token?</h3>
+      <p className="form-note">Add a token created on KIVO using its mint address and successful creation transaction signature.</p>
+      <label className="field"><span className="tiny">MINT ADDRESS</span><input className="input" value={mint} onChange={event => setMint(event.target.value)} required placeholder="Token mint" /></label>
+      <label className="field"><span className="tiny">CREATION SIGNATURE</span><input className="input" value={signature} onChange={event => setSignature(event.target.value)} required placeholder="Solana transaction signature" /></label>
+      <button className="btn" type="submit" disabled={adding}>{adding ? 'VERIFYING ONCHAIN…' : 'ADD TOKEN'}</button>
+      {addError && <p className="launch-error" role="alert">{addError}</p>}
+    </form>
+  </>;
 }
