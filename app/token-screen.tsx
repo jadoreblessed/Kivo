@@ -9,6 +9,11 @@ function supplyText(token: TokenListing) {
   return units.toLocaleString('en-US');
 }
 
+const demoPrice = 0.000000009108;
+const compact = (value: number) => value >= 1_000_000
+  ? `${(value / 1_000_000).toFixed(2)}M`
+  : value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+
 export default function TokenScreen({ mint, network }: { mint: string; network: SolanaNetwork }) {
   const [token, setToken] = useState<TokenListing | null>(null);
   const [error, setError] = useState('');
@@ -18,6 +23,16 @@ export default function TokenScreen({ mint, network }: { mint: string; network: 
   const [renaming, setRenaming] = useState(false);
   const [renameError, setRenameError] = useState('');
   const [renameSignature, setRenameSignature] = useState('');
+  const [side, setSide] = useState<'buy' | 'sell'>('buy');
+  const [amount, setAmount] = useState('0.1');
+  const [slippage, setSlippage] = useState(3);
+  const [preview, setPreview] = useState('');
+  const entered = Number(amount);
+  const validAmount = amount.trim() !== '' && Number.isFinite(entered) && entered > 0;
+  const estimated = validAmount ? side === 'buy'
+    ? entered * 0.987 / demoPrice
+    : entered * demoPrice * 0.987 : 0;
+  const estimateText = (value: number) => side === 'buy' ? `${compact(value)} ${token?.symbol || ''}` : `${value.toFixed(4)} SOL`;
 
   useEffect(() => {
     let active = true;
@@ -79,7 +94,27 @@ export default function TokenScreen({ mint, network }: { mint: string; network: 
         <section className="token-market-panel"><div className="token-panel-heading">PRICE · SOL PER TOKEN</div><div className="token-chart-empty">A price chart will appear when this token has an active market and verified trade data.</div></section>
         <section className="token-market-panel"><div className="token-panel-heading">BONDING CURVE <span>NOT ACTIVE</span></div><div className="token-curve-track"/><p>This token has been created on Solana. A bonding curve and pool require a deployed KIVO market program.</p><div className="token-data-row"><span>Mint authority</span><strong>Revoked</strong></div><div className="token-data-row"><span>Token program</span><strong>Token-2022</strong></div></section>
       </div>
-      <aside className="token-side-column"><section className="token-market-panel token-order-panel"><div className="token-panel-heading">TRADE ON THE CURVE <span>${token.symbol}</span></div><div className="token-order-tabs"><span>BUY</span><span>SELL</span></div><div className="token-order-input">SOL to spend</div><div className="token-order-amounts"><span>0.1 SOL</span><span>0.5 SOL</span><span>1 SOL</span></div><p>KIVO trading is not available for this token.</p><button className="btn primary" type="button" onClick={()=>void connect()}>{wallet ? `${wallet.slice(0,4)}…${wallet.slice(-4)} CONNECTED` : 'CONNECT WALLET'}</button>{walletError && <p className="launch-error" role="alert">{walletError} {walletError.startsWith('Phantom is not available') && typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && <a href={phantomBrowseUrl(window.location.href)}>OPEN IN PHANTOM →</a>}</p>}<small>Wallet connection does not enable trading until a market is deployed.</small></section><a className="btn" href={`https://explorer.solana.com/address/${mint}${network === 'devnet' ? '?cluster=devnet' : ''}`} target="_blank" rel="noreferrer">VIEW ON SOLANA EXPLORER ↗</a></aside>
+      <aside className="token-side-column">
+        <section className="token-market-panel token-order-panel">
+          <div className="token-panel-heading">TRADE PREVIEW <span>DEMO · ${token.symbol}</span></div>
+          <div className="token-order-tabs demo-tabs">
+            <button className={side === 'buy' ? 'active' : ''} type="button" onClick={() => { setSide('buy'); setAmount('0.1'); setPreview(''); }}>BUY</button>
+            <button className={side === 'sell' ? 'active' : ''} type="button" onClick={() => { setSide('sell'); setAmount('1000000'); setPreview(''); }}>SELL</button>
+          </div>
+          <label className="field"><span className="tiny">{side === 'buy' ? 'SOL TO SPEND' : `${token.symbol} TO SELL`}</span><input className="input" type="number" min="0" step="any" inputMode="decimal" value={amount} onChange={event => { setAmount(event.target.value); setPreview(''); }} /></label>
+          <div className="token-order-amounts demo-amounts">{(side === 'buy' ? [0.1, 0.5, 1] : [1_000_000, 5_000_000, 10_000_000]).map(value => <button type="button" className={Number(amount) === value ? 'active' : ''} key={value} onClick={() => { setAmount(String(value)); setPreview(''); }}>{side === 'buy' ? value : compact(value)} {side === 'buy' ? 'SOL' : token.symbol}</button>)}</div>
+          <div className="token-data-row"><span>Sample received</span><strong>{validAmount ? estimateText(estimated) : '—'}</strong></div>
+          <div className="token-data-row"><span>Sample fee</span><strong>1.3%</strong></div>
+          <div className="token-data-row"><span>Minimum at {slippage}% slippage</span><strong>{validAmount ? estimateText(estimated * (1 - slippage / 100)) : '—'}</strong></div>
+          <div className="demo-slip"><span>SLIPPAGE</span>{[1, 3, 5, 10].map(value => <button type="button" className={slippage === value ? 'active' : ''} key={value} onClick={() => { setSlippage(value); setPreview(''); }}>{value}%</button>)}</div>
+          <button className="btn primary" type="button" onClick={() => setPreview(validAmount ? `Demo ${side} preview: ${estimateText(estimated)}. No transaction was sent.` : 'Enter an amount above zero.')}>PREVIEW {side.toUpperCase()}</button>
+          {preview && <p className="demo-preview" role="status">{preview}</p>}
+          <button className="btn" type="button" onClick={() => void connect()}>{wallet ? `${wallet.slice(0,4)}…${wallet.slice(-4)} CONNECTED` : 'CONNECT WALLET'}</button>
+          {walletError && <p className="launch-error" role="alert">{walletError} {walletError.startsWith('Phantom is not available') && typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && <a href={phantomBrowseUrl(window.location.href)}>OPEN IN PHANTOM →</a>}</p>}
+          <small>Sample prices only. This token has no KIVO market; previewing does not move SOL or tokens.</small>
+        </section>
+        <a className="btn" href={`https://explorer.solana.com/address/${mint}${network === 'devnet' ? '?cluster=devnet' : ''}`} target="_blank" rel="noreferrer">VIEW ON SOLANA EXPLORER ↗</a>
+      </aside>
     </div>
   </main>;
 }
