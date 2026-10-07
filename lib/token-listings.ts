@@ -52,6 +52,25 @@ export async function getToken(mintAddress: string, network: SolanaNetwork): Pro
   return typeof raw === 'string' ? JSON.parse(raw) as TokenListing : null;
 }
 
+export async function refreshTokenMetadata(mintAddress: string, signature: string, network: SolanaNetwork): Promise<TokenListing> {
+  const existing = await getToken(mintAddress, network);
+  if (!existing) throw new Error('Token is not in the catalog.');
+  if (!/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(signature)) throw new Error('Invalid transaction signature.');
+  const mint = new PublicKey(existing.mint);
+  const connection = new Connection(network === 'mainnet-beta'
+    ? process.env.SOLANA_MAINNET_RPC || rpc(network)
+    : process.env.SOLANA_DEVNET_RPC || rpc(network), 'confirmed');
+  const transaction = await connection.getParsedTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
+  if (!transaction || transaction.meta?.err || !transaction.transaction.message.accountKeys.some(key => key.pubkey.equals(mint))) {
+    throw new Error('No confirmed metadata transaction found for this mint.');
+  }
+  const metadata = await getTokenMetadata(connection, mint, 'confirmed', TOKEN_2022_PROGRAM_ID);
+  if (!metadata?.name || !metadata.symbol) throw new Error('Onchain token metadata is unavailable.');
+  const updated = { ...existing, name: metadata.name, symbol: metadata.symbol };
+  await command(['HSET', recordsKey(network), existing.mint, JSON.stringify(updated)]);
+  return updated;
+}
+
 export async function registerToken(mintAddress: string, signature: string, network: SolanaNetwork): Promise<TokenListing> {
   const mint = new PublicKey(mintAddress);
   if (!/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(signature)) throw new Error('Enter a valid transaction signature.');

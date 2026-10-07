@@ -57,6 +57,7 @@ export default function MarketList() {
 
   const marketsByMint = new Map(markets.map(market => [market.mint, market]));
   return <>
+    <a href="/demo" className="demo-feature"><div className="token-icon">KIV</div><div><span className="tiny">INTERACTIVE MARKET PREVIEW · DEMO</span><h3>KIVO · $KIVO</h3><p>Explore the ten tranche curve, trade panel and sample metrics.</p></div><span className="btn primary">OPEN DEMO →</span></a>
     <label className="field"><span className="tiny">NETWORK</span><select className="input" value={network} onChange={event => setNetwork(event.target.value as SolanaNetwork)}><option value="mainnet-beta">Solana mainnet</option><option value="devnet">Solana devnet</option></select></label>
     {loading ? <div className="empty">LOADING TOKENS…</div> : error ? <div className="empty" role="alert">{error}</div> : !tokens.length && !markets.length ? <div className="empty">NO TOKENS LISTED YET · <a href="/launch">CREATE A TOKEN</a></div> : <div className="blueprints">
       {tokens.map(token => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { connectSolanaWallet, phantomBrowseUrl, type SolanaNetwork } from '../lib/solana-launch';
+import { connectSolanaWallet, phantomBrowseUrl, renameTokenToKivo, type SolanaNetwork } from '../lib/solana-launch';
 import type { TokenListing } from '../lib/token-listings';
 
 function supplyText(token: TokenListing) {
@@ -15,6 +15,9 @@ export default function TokenScreen({ mint, network }: { mint: string; network: 
   const [wallet, setWallet] = useState('');
   const [walletError, setWalletError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState('');
+  const [renameSignature, setRenameSignature] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -32,6 +35,25 @@ export default function TokenScreen({ mint, network }: { mint: string; network: 
     catch (reason) { setWalletError(reason instanceof Error ? reason.message : 'Wallet connection failed.'); }
   }
 
+  async function rename() {
+    setRenaming(true);
+    setRenameError('');
+    try {
+      const signature = renameSignature || await renameTokenToKivo(mint, network);
+      setRenameSignature(signature);
+      const response = await fetch('/api/tokens', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mint, network, signature }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Could not refresh the token listing.');
+      setToken(body.token);
+      setRenameSignature('');
+    } catch (reason) {
+      setRenameError(reason instanceof Error ? reason.message : 'Could not rename token.');
+    } finally { setRenaming(false); }
+  }
+
   if (error) return <main className="wrap token-detail"><a className="tiny" href="/app">← BACK TO TOKENS</a><p className="launch-error" role="alert">{error}</p></main>;
   if (!token) return <main className="wrap token-detail"><div className="empty">LOADING TOKEN…</div></main>;
 
@@ -43,6 +65,7 @@ export default function TokenScreen({ mint, network }: { mint: string; network: 
         <div className="token-profile-meta"><span>MINT <code>{mint.slice(0, 6)}…{mint.slice(-5)}</code></span><button type="button" onClick={async () => { await navigator.clipboard.writeText(mint); setCopied(true); }}>{copied ? 'COPIED' : 'COPY'}</button><span>· {network === 'devnet' ? 'DEVNET' : 'MAINNET'} · TOKEN-2022</span></div>
       </div>
     </header>
+    {token.name.trim().toLowerCase() === 'kivo test' && <section className="token-market-panel token-rename"><div className="token-panel-heading">TOKEN NAME</div><p>The wallet holding this token’s metadata update authority can change its onchain name and ticker to KIVO. Phantom will request a transaction signature and a small network fee.</p><button className="btn" type="button" disabled={renaming} onClick={() => void rename()}>{renaming ? 'UPDATING…' : renameSignature ? 'RETRY LISTING REFRESH' : 'RENAME TO KIVO · SIGN IN WALLET'}</button>{renameError && <p className="launch-error" role="alert">{renameError}{renameSignature && <> Onchain signature: <a href={`https://explorer.solana.com/tx/${renameSignature}${network === 'devnet' ? '?cluster=devnet' : ''}`} target="_blank" rel="noreferrer">VIEW TRANSACTION ↗</a></>}</p>}</section>}
     <div className="token-trade-layout">
       <div className="token-main-column">
         <div className="token-stats">

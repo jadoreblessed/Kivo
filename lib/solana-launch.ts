@@ -3,9 +3,9 @@ import {
   AuthorityType, ExtensionType, LENGTH_SIZE, TOKEN_2022_PROGRAM_ID, TYPE_SIZE,
   createAssociatedTokenAccountInstruction, createInitializeMetadataPointerInstruction,
   createInitializeMintInstruction, createMintToInstruction, createSetAuthorityInstruction,
-  getAssociatedTokenAddressSync, getMintLen,
+  getAssociatedTokenAddressSync, getMintLen, getTokenMetadata,
 } from '@solana/spl-token';
-import { createInitializeInstruction, pack } from '@solana/spl-token-metadata';
+import { createInitializeInstruction, createUpdateFieldInstruction, Field, pack } from '@solana/spl-token-metadata';
 
 export type SolanaNetwork = 'devnet' | 'mainnet-beta';
 export const DEVNET_RPC = clusterApiUrl('devnet');
@@ -119,3 +119,25 @@ export async function createToken(input: LaunchInput, network: SolanaNetwork): P
 }
 
 export const createDevnetToken = (input: LaunchInput) => createToken(input, 'devnet');
+
+export async function renameTokenToKivo(mintAddress: string, network: SolanaNetwork): Promise<string> {
+  const mint = new PublicKey(mintAddress);
+  const wallet = provider();
+  if (!wallet.signTransaction) throw new Error('This wallet cannot sign Solana transactions.');
+  const owner = (await wallet.connect()).publicKey;
+  const connection = new Connection(rpc(network), 'confirmed');
+  const metadata = await getTokenMetadata(connection, mint, 'confirmed', TOKEN_2022_PROGRAM_ID);
+  if (!metadata?.updateAuthority?.equals(owner)) {
+    throw new Error('Connect the wallet that created this token and holds its metadata update authority.');
+  }
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+  const transaction = new Transaction({ feePayer: owner, recentBlockhash: blockhash }).add(
+    createUpdateFieldInstruction({ programId: TOKEN_2022_PROGRAM_ID, metadata: mint, updateAuthority: owner, field: Field.Name, value: 'KIVO' }),
+    createUpdateFieldInstruction({ programId: TOKEN_2022_PROGRAM_ID, metadata: mint, updateAuthority: owner, field: Field.Symbol, value: 'KIVO' }),
+  );
+  const signed = await wallet.signTransaction(transaction);
+  const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+  const confirmation = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+  if (confirmation.value.err) throw new Error(`Metadata update failed: ${JSON.stringify(confirmation.value.err)}`);
+  return signature;
+}
