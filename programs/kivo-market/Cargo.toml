@@ -23,3 +23,11 @@ anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
 anchor-spl = { version = "0.32.1", features = ["token_2022", "associated_token"] }
 kivo-market-math = { path = "../kivo-market-math" }
 spl-token-2022 = "8.0.1"
+
+# Favor a smaller deployable SBF binary. Rebuild and measure the .so before
+# estimating mainnet rent; these options do not affect the checked-in artifact.
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
