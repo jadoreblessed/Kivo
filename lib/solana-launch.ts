@@ -40,6 +40,13 @@ export async function connectSolanaWallet(): Promise<string> {
 
 export type LaunchInput = { name: string; symbol: string; supply: string; uri: string };
 
+export class TokenConfirmationError extends Error {
+  constructor(public readonly mint: string, public readonly signature: string) {
+    super('Transaction was submitted, but its confirmation could not be verified. Check the transaction before creating another token.');
+    this.name = 'TokenConfirmationError';
+  }
+}
+
 export function validateLaunch(input: LaunchInput): bigint {
   if (!input.name.trim() || input.name.trim().length > 32) throw new Error('Name must be 1–32 characters.');
   if (!/^[A-Z0-9]{1,10}$/.test(input.symbol)) throw new Error('Ticker must be 1–10 letters or digits.');
@@ -84,9 +91,25 @@ export async function createToken(input: LaunchInput, network: SolanaNetwork): P
   transaction.partialSign(mint);
   const signed = await wallet.signTransaction(transaction);
   const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
-  const confirmation = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
-  if (confirmation.value.err) throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}. Signature: ${signature}`);
-  return { mint: mint.publicKey.toBase58(), signature };
+  const launched = { mint: mint.publicKey.toBase58(), signature };
+
+  try {
+    const confirmation = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+    if (confirmation.value.err) throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}. Signature: ${signature}`);
+    return launched;
+  } catch (reason) {
+    // Confirmation can time out even when the transaction has landed. Check its
+    // actual chain status before calling the launch a failure.
+    if (reason instanceof Error && reason.message.startsWith('Transaction failed:')) throw reason;
+    try {
+      const status = (await connection.getSignatureStatuses([signature], { searchTransactionHistory: true })).value[0];
+      if (status?.err) throw new Error(`Transaction failed: ${JSON.stringify(status.err)}. Signature: ${signature}`);
+      if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') return launched;
+    } catch (statusError) {
+      if (statusError instanceof Error && statusError.message.startsWith('Transaction failed:')) throw statusError;
+    }
+    throw new TokenConfirmationError(launched.mint, signature);
+  }
 }
 
 export const createDevnetToken = (input: LaunchInput) => createToken(input, 'devnet');
