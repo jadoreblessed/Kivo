@@ -9,7 +9,7 @@ export default function LaunchToken(){
 }
 
 function StandaloneLaunch() {
-  const [network, setNetwork] = useState<SolanaNetwork>('devnet');
+  const [network, setNetwork] = useState<SolanaNetwork>('mainnet-beta');
   const [mainnetConfirmed, setMainnetConfirmed] = useState(false);
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
@@ -34,7 +34,10 @@ function StandaloneLaunch() {
       const launched = await createToken({ name, symbol, supply, uri }, network);
       setResult(launched);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Token creation failed.');
+      const message = reason instanceof Error ? reason.message : 'Token creation failed.';
+      setError(/\b403\b|Access forbidden/i.test(message)
+        ? `Solana ${network === 'devnet' ? 'devnet' : 'mainnet'} RPC refused access (403). The site needs a working RPC endpoint for this network; no token was created.`
+        : message);
     } finally { setBusy(false); }
   }
 
@@ -46,7 +49,7 @@ function StandaloneLaunch() {
     <div className="launch-layout">
       <section className="launch-panel">
         <span className="tiny">TOKEN DETAILS</span>
-        <label className="field"><span className="tiny">NETWORK</span><select className="input" value={network} onChange={e => { setNetwork(e.target.value as SolanaNetwork); setMainnetConfirmed(false); setResult(null); }}><option value="devnet">Solana devnet · test</option><option value="mainnet-beta">Solana mainnet · real token</option></select></label>
+        <label className="field"><span className="tiny">NETWORK</span><select className="input" value={network} onChange={e => { setNetwork(e.target.value as SolanaNetwork); setMainnetConfirmed(false); setResult(null); }}><option value="mainnet-beta">Solana mainnet · real token</option><option value="devnet">Solana devnet · test</option></select></label>
         <label className="field"><span className="tiny">NAME</span><input className="input" maxLength={32} value={name} onChange={e=>setName(e.target.value)} placeholder="Kivo Kitten" /></label>
         <label className="field"><span className="tiny">TICKER</span><input className="input" maxLength={10} value={symbol} onChange={e=>setSymbol(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,''))} placeholder="KITTEN" /></label>
         <label className="field"><span className="tiny">FIXED SUPPLY · 6 DECIMALS</span><input className="input" inputMode="numeric" value={supply} onChange={e=>setSupply(e.target.value.replace(/\D/g,''))} /></label>
