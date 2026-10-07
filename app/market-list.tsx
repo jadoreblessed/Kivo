@@ -14,8 +14,8 @@ function sampleMetrics(mint: string) {
   };
 }
 
-function DiscoverCard({ name, symbol, mint, href, status, demo = false }: {
-  name: string; symbol: string; mint: string; href: string; status: string; demo?: boolean;
+function DiscoverCard({ name, symbol, mint, href, status, demo = false, market = false }: {
+  name: string; symbol: string; mint: string; href: string; status: string; demo?: boolean; market?: boolean;
 }) {
   const metrics = demo ? { mcap: '9.108', raised: '0.9735', volume: '26.028' } : sampleMetrics(mint);
   const progress = Math.min(100, Number(metrics.raised) / 85 * 100);
@@ -25,10 +25,10 @@ function DiscoverCard({ name, symbol, mint, href, status, demo = false }: {
       <div className="discover-card-identity"><h3>{name}</h3><div>${symbol} <span>·</span> {demo ? 'PREVIEW' : `${mint.slice(0, 4)}…${mint.slice(-4)}`}</div></div>
       <span className="discover-card-status">{status}</span>
     </div>
-    <div className="discover-card-rule"><i aria-hidden="true"/> ANTI-SNIPE <span>· DEMO</span></div>
+    <div className="discover-card-rule"><i aria-hidden="true"/> {demo ? 'ANTI-SNIPE' : market ? 'KIVO MARKET' : 'TOKEN-2022'}</div>
     <div className="discover-card-progress" role="img" aria-label={`Sample progress ${progress.toFixed(1)}%`}><i style={{ width: `${Math.max(1, progress)}%` }}/></div>
     <div className="discover-card-metrics"><div><span>MCAP</span> {metrics.mcap} SOL</div><div><span>RAISED</span> {metrics.raised}/85 SOL</div><div><span>VOL</span> {metrics.volume} SOL</div></div>
-    <div className="discover-card-foot">DEMO DATA · SAMPLE METRICS · {demo ? 'OPEN MARKET PREVIEW' : 'OPEN TOKEN PROFILE'} →</div>
+    <div className="discover-card-foot">SAMPLE FIGURES · {demo ? 'OPEN MARKET PREVIEW' : market ? 'OPEN MARKET' : 'OPEN TOKEN PROFILE'} →</div>
   </a>;
 }
 
@@ -93,16 +93,16 @@ export default function MarketList() {
     {loading && <div className="empty">LOADING TOKENS…</div>}
     {error && <div className="empty" role="alert">{error}</div>}
     {!loading && !error && <div className="discover-card-grid">
-      <DiscoverCard name="KIVO" symbol="KIVO" mint="demo" href="/demo" status="BONDING · DEMO" demo />
+      <DiscoverCard name="KIVO" symbol="KIVO" mint="demo" href="/demo" status="MARKET PREVIEW" demo />
       {tokens.map(token => {
         const market = marketsByMint.get(token.mint);
         return <DiscoverCard key={token.mint} name={token.name} symbol={token.symbol} mint={token.mint}
           href={market ? `/market/${token.mint}` : `/token/${token.mint}?network=${network}`}
-          status={market ? market.migrated ? 'LOCKED POOL' : market.graduated ? 'GRADUATED' : 'BONDING' : 'TOKEN · DEMO'} />;
+          status={market ? market.migrated ? 'LOCKED POOL' : market.graduated ? 'GRADUATED' : 'BONDING' : 'TOKEN CREATED'} market={Boolean(market)} />;
       })}
       {markets.filter(market => !tokens.some(token => token.mint === market.mint)).map(market =>
         <DiscoverCard key={market.mint} name={`${market.mint.slice(0, 6)}…${market.mint.slice(-5)}`} symbol="KIVO" mint={market.mint} href={`/market/${market.mint}`}
-          status={market.migrated ? 'LOCKED POOL' : market.graduated ? 'GRADUATED' : 'BONDING'} />)}
+          status={market.migrated ? 'LOCKED POOL' : market.graduated ? 'GRADUATED' : 'BONDING'} market />)}
     </div>}
     <form className="launch-panel token-import" onSubmit={event => void addToken(event)}>
       <h3>Already created a token?</h3>
